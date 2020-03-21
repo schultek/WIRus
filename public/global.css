@@ -1,0 +1,39 @@
+* {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+} 
+
+input {
+    padding: 10px 20px;
+    border: 1px solid gray;
+    outline: none;
+    border-radius: 100px;
+    font-size: 15px;
+}
+
+input.error {
+    border-color: red;
+}
+
+button {
+    padding: 10px 20px;
+    border: 1px solid gray;
+    outline: none;
+    border-radius: 100px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: black;
+    color: white;
+}

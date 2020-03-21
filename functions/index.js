@@ -1,61 +1,17 @@
 const functions = require('firebase-functions');
 const admin = require("firebase-admin");
 const express = require("express");
+const cors = require("cors");
 const nodemailer = require("nodemailer");
 
 const app = express();
+app.use(cors({origin: true}))
+
+const credentials = require("./credentials.json")
 
 admin.initializeApp();
 
 const db = admin.firestore();
-
-/*
-
-    nutzer -> platform zu app verbinden -> platform anfrage nutzer verifizierung -> platform verifiziere email
-    nutzer -> bestätigung anfordern -> email an empfänger -> bestätigungslink
-
-
-    user {
-        email
-        name
-        punkte
-        aktionen
-        platforms
-    }
-
-    platforms {
-        id
-        name
-        api token
-    }
-
-    aktionen {
-        id
-        platform
-        user
-        empfänger
-        titel
-        beschreibung
-        punkte
-        completed (true/false)
-        time
-        confirmable (true/false)
-    }
-
-    nutzer
-        -> get info
-        -> set info
-       // -> connect platform
-        -> request aktion bestätigung
-        -> delete aktion
-
-    platform
-        -> verify user
-        -> erstelle aktion
-        -> update aktion
-
-    
-*/
 
 app.get("/api/user/:id/", (req, res) => {
   db.collection("users").doc(req.params.id).get()
@@ -138,8 +94,8 @@ app.get("/api/action/:actionId/confirm", async (req, res) => {
       port: 465,
       secure: true,
       auth: {
-        user: "noreply@upride.io",
-        pass: "noreplyUpride"
+        user: credentials.user,
+        pass: credentials.password
       }
     });
 
