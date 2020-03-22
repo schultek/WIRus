@@ -8,6 +8,8 @@
   const onOverlayClickHandler = () => {
     dispatch("close");
   };
+
+  export let host;
 </script>
 
 <style>
@@ -27,7 +29,7 @@
   }
 
   .action-tag {
-    background: #2e63eb;
+    background: #ff8811;
     color: white;
     font-weight: 500;
     border-radius: 20px;
@@ -66,14 +68,13 @@
   <div class="action-title">{action.title}</div>
 
   {#if action.confirmable}
-    <button on:click={() => dispatch('signup')}>Sign me up</button>
+    <button on:click={() => dispatch('signup')}>Eintragen</button>
     <span class="action-hint">
-      You will receive points once you completed this action and your host {action.host}
-      confirmed it.
+        Du erhälst punkte, sobald die Aktion abgeschlossen ist und dein Host {host} dies bestätigt hat.
     </span>
   {:else}
-    <button on:click={() => dispatch('complete')}>Do it</button>
-    <span class="action-hint">You will receive points immediately.</span>
+    <button on:click={() => dispatch('complete')}>Jetzt helfen</button>
+    <span class="action-hint">Du erhälst sofort punkte.</span>
   {/if}
 
 </div>

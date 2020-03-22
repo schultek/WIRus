@@ -16,6 +16,10 @@
         "function": "app"
       },
       {
+        "source": "/confirm",
+        "destination": "/confirm.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

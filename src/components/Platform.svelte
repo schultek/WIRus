@@ -5,6 +5,7 @@
   const dispatch = createEventDispatcher();
 
   export let user;
+  export let host;
 
   const actions = [
     {
@@ -12,8 +13,7 @@
       description:
         "Wir brauchen motivierte und ausdauernde Arbeitskräfte für die Spargelernte",
       points: 50,
-      confirmable: true,
-      host: "kilian@4xschulte.de"
+      confirmable: true
     },
     {
       title: "Für Oma einkaufen",
@@ -33,7 +33,6 @@
       description:
         "Peter braucht Internet, aber weiß nicht wie man einen Zugang einrichtet. Hilf ihm.",
       points: 8,
-      host: "kilian@4xschulte.de",
       confirmable: true
     }
   ];
@@ -47,7 +46,7 @@
       completed: completed
     }
 
-    fetch("https://wirus-app.web.app/api/platform/demo/action/", {
+    fetch("https://wirus-app.web.app/api/platform/demo/action?token=1234", {
       method: 'post',
       headers: {
         'Content-Type': 'application/json'
@@ -73,7 +72,7 @@
     console.log(action);
     let dialog = new Dialog({
       target: document.getElementById("dialog-container"),
-      props: { action }
+      props: { action, host }
     });
     dialog.$on("close", () => {
       dialog.$destroy();
@@ -99,18 +98,31 @@
   }
   .user-wrapper {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     width: 100%;
+    background: #00a676;
+    color: white;
+    border-radius: 20px;
+    padding: 10px 10px;
+    box-sizing: border-box;
+    box-shadow: 3px 3px 10px -2px rgba(0,0,0,.2);
+  }
+
+  .user-wrapper > div {
+    display: flex;
+    align-items: center;
+  }
+
+  .user-wrapper button:hover {
+    border-color: white;
   }
   .user-info {
-    border: 1px solid gray;
-    padding: 3px 10px;
-    border-radius: 100px;
-    margin-left: 5px;
+    margin: 0 5px 0 10px;
     font-size: 0.8rem;
   }
   .actions-list {
+    margin-top: 20px;
     padding: 30px 0;
     display: flex;
     flex-flow: column;
@@ -162,14 +174,14 @@
     z-index: -1;
     width: 130%;
     height: 130%;
-    background: #2e63eb;
+    background: #ff8811;
     opacity: 0.2;
   }
   .action-points {
     width: 30px;
     height: 30px;
     border-radius: 100%;
-    background: #2e63eb;
+    background: #ff8811;
     color: white;
     display: flex;
     justify-content: center;
@@ -217,13 +229,19 @@
 
 <div class="platform-wrapper">
   <div class="user-wrapper">
-
+<div>
+ <div class="user-info">
+      Host: 
+      {host}
+    </div>
+</div>
+<div>
     <div class="user-info">
       <i class="fas fa-user fa-sm" />
       {user}
     </div>
 
-    <button class="logout" on:click={logoutHandler}>Logout</button>
+    <button class="logout" on:click={logoutHandler}>Logout</button></div>
   </div>
   <div class="actions-list">
     {#each actions as action}
@@ -245,7 +263,7 @@
 {#if completed}
   <div class="overlay"></div>
   <div class="completed-wrapper">
-    <i class="far fa-check-circle fa-3x" style="color: limegreen"></i>
+    <i class="far fa-check-circle fa-3x" style="color: #00a676"></i>
     {#if receivedPoints}
       <div class="received-points-wrapper">
         <i class="em em-tada"></i><span style="padding: 0 8px">+{receivedPoints} points</span><i class="em em-tada" ></i>
