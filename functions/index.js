@@ -259,7 +259,7 @@ app.get("/api/action/:actionId/confirm", async (req, res) => {
 
   // send mail with defined transport object
   await transporter.sendMail({
-    from: '"WIRus App (Nicht Antworten)" <kilian@upride.io>', // sender address
+    from: '"WIRus App" <wirus.app@gmail.com>', // sender address
     to: action.get("host"), // list of receivers
     subject: `Bestätige ${user.name}'s helfen bei '${action.get("title")}'`, // Subject line
     text: textBody, // plain text body
