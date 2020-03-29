@@ -67,5 +67,3 @@ node_modules/
 .DS_Store
 public/bundle.*
 .rpt2_cache
-functions/credentials.json
-functions/notes.txt

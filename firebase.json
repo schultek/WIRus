@@ -1,8 +1,4 @@
 {
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
   "hosting": {
     "public": "public",
     "ignore": [
@@ -16,16 +12,9 @@
         "function": "app"
       },
       {
-        "source": "/confirm",
-        "destination": "/confirm.html"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
     ]
-  },
-  "storage": {
-    "rules": "storage.rules"
   }
 }

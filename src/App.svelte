@@ -1,41 +1,26 @@
 <script>
-  import Platform from "./components/Platform.svelte";
-  import Login from "./components/Login.svelte";
-  import HostDialog from "./components/HostDialog.svelte"
+  import createRouter, {ROUTER_MODE} from '@spaceavocado/svelte-router';
+  import RouterView from '@spaceavocado/svelte-router/component/view';
 
-  $: userEmail = "";
-  $: userIsLoggedIn = false;
-  $: host = "";
+  // View components
+  import ConfirmView from './views/Confirm.svelte';
+  import SignInView from './views/SignIn.svelte';
 
-  let loginHandler = event => {
-
-    userEmail = event.detail;
-    userIsLoggedIn = true;
-
-    fetch("https://wirus-app.web.app/api/platform/demo/verify?email="+userEmail+"&token=1234")
-  };
-
-  let hostHandler = event => {
-    host = event.detail;
-  }
-
-  const logoutHandler = event => {
-    userIsLoggedIn = false;
-    userEmail = "";
-    host = "";
-  }
+  createRouter({
+    mode: ROUTER_MODE.HISTORY,
+    routes: [
+      { 
+        path: '/signin',
+        name: 'signIn',
+        component: SignInView
+      },
+      {
+        path: '/confirm',
+        name: 'confirm',
+        component: ConfirmView
+      }
+    ],
+  });
 </script>
 
-<style>
-
-</style>
-
-<div class="main">
-  {#if userIsLoggedIn && host}
-    <Platform user={userEmail} host={host} on:logout={logoutHandler} />
-  {:else if !userEmail}
-    <Login on:login={loginHandler} />
-  {:else}
-    <HostDialog on:close={hostHandler}/>
-  {/if}
-</div>
+<RouterView />

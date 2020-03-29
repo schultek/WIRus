@@ -1,5 +1,5 @@
-exports.getTextBody = function(link, user, platform, action) {
-    return `
+exports.getTextBody = function (link, user, platform, action) {
+  return `
 Hilf ${user.name}, anderen zu helfen!
 
 Bestätige ${user.name}'s helfen bei der Aktion '${action.title}'
@@ -16,8 +16,8 @@ WIRus ist ein Projekt des #wirvsvirus Hackathons zur Corona-Krise
     `
 }
 
-exports.getEmailBody = function(link, user, platform, action, logo) {
-    return `
+exports.getEmailBody = function (link, user, platform, action, logo) {
+  return `
 <!DOCTYPE html
 	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
