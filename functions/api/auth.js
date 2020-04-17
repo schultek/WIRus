@@ -110,7 +110,7 @@ app.post("/token", cors({
 
   } else if (req.body.grant_type === "client_credentials") {
 
-    let scope, userDoc;
+    let userDoc;
 
     if (req.body.client_subject) {
       let users = await db.collection("users").where("platforms." + platformDoc.id + ".subject", "==", req.body.client_subject).get();
