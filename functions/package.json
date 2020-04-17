@@ -17,6 +17,7 @@
     "firebase-functions": "^3.3.0",
     "jsonwebtoken": "^8.5.1",
     "node-fetch": "^2.6.0",
+    "node-rsa": "^1.0.8",
     "nodemailer": "^6.4.6",
     "request": "^2.88.2"
   },

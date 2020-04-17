@@ -8,8 +8,20 @@
     ],
     "rewrites": [
       {
+        "source": "/api/user/**",
+        "function": "userApi"
+      },
+      {
+        "source": "/api/platform/**",
+        "function": "platformApi"
+      },
+      {
+        "source": "/api/auth/**",
+        "function": "authApi"
+      },
+      {
         "source": "/api/**",
-        "function": "app"
+        "function": "baseApi"
       },
       {
         "source": "**",

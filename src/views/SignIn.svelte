@@ -1,60 +1,54 @@
 <script>
-
-  import { onMount } from 'svelte';
   import firebase from "../lib/firebase";
-  import {parseQuery, testEmail} from "../lib/utils";
+  import { testEmail } from "../lib/utils";
 
-  let query = parseQuery(window.location.search);
-  //window.history.replaceState({}, document.title, window.location.pathname);
-
-  $: platform = null;
-
-  onMount(async () => {
-
-    if (query.platform && query.token) {
-
-      fetch(`https://wirus-app.firebaseapp.com/api/platform/get/${query.platform}`, {
-        headers: {
-          Authorization: `Bearer ${query.token}` 
-        }
-      })
-        .then(res => {
-          if (res.status == 200) {
-            return res.json();
-          } else {
-            return res.text().then(body => { throw new Error(body); });
-          }
-        })
-        .then(data => platform = data)
-        .catch(err => console.warn(err));
-
-    }
-  })
+  let clientPromise = fetch("/api/auth/info" + window.location.search)
+    .then(res => {
+      if (res.status == 200) {
+        return res.json();
+      } else {
+        return res.text().then(e => {
+          throw new Error(e);
+        });
+      }
+    })
+    .then(client => {
+      console.log(client);
+      return client;
+    });
 
   $: email = "";
   $: emailValid = true;
   $: password = "";
   $: credValid = true;
 
-  const signin = () => {
+  $: loggingin = false;
+
+  const signin = client => {
+    if (loggingin) return;
+
     if (!testEmail(email)) {
       emailValid = false;
     } else {
       console.log("LOGIN");
-      firebase.auth().signInWithEmailAndPassword(email, password)
+      loggingin = true;
+      firebase
+        .auth()
+        .signInWithEmailAndPassword(email, password)
         .then(credential => {
           return credential.user.getIdToken().then(token => {
-            window.location = `https://wirus-app.firebaseapp.com/api/app/user/${credential.user.uid}/goto/${query.platform}?authorization=${token}&method=app`;
-          })
+            window.location = `/api/auth/goto?authorization=${token}&${window.location.search.replace(
+              "?",
+              ""
+            )}`;
+          });
         })
         .catch(err => {
           console.warn(err);
           credValid = false;
-        })
+        });
     }
   };
-
-
 </script>
 
 <style>
@@ -105,9 +99,15 @@
   }
   .platform-info p {
     max-width: 200px;
-    font-size: .7em;
+    font-size: 0.7em;
     line-height: 1.5em;
     text-align: center;
+  }
+
+  form {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
   }
 </style>
 
@@ -118,20 +118,41 @@
 <div class="main">
   <div class="signin-wrapper">
     <h2>SignIn mit WIRus</h2>
-    {#if platform}
+    {#await clientPromise}
+      <i class="fas fa-circle-notch fa-spin fa-2x" />
+    {:then client}
       <div class="platform-info">
-        <img src={platform.logo} alt={platform.name}/>
-        <h4>{platform.name}</h4>
+        <img src={client.logo} alt={client.name} />
+        <h4>{client.name}</h4>
         <p>
-          {platform.name} erhält Zugriff auf deinen Namen und Wohnort. 
-          Deine Aktivitäten auf der Platform werden dir automatisch 
-          in der App angezeigt.
+          {client.name} erhält Zugriff auf:
+          <b>{client.scopeDescription}</b>
+          . Deine Aktivitäten auf der Platform werden dir automatisch in der App
+          angezeigt.
         </p>
       </div>
-    {/if}
-    <input bind:value={email} placeholder="Email" class:error={!emailValid || !credValid} />
-    <input bind:value={password} placeholder="Passwort" type="password" class:error={!credValid} />
-    <button on:click={signin}>Login</button>
+
+      <form>
+        <input
+          bind:value={email}
+          placeholder="Email"
+          class:error={!emailValid || !credValid}
+          autocomplete="email" />
+        <input
+          bind:value={password}
+          placeholder="Passwort"
+          type="password"
+          class:error={!credValid}
+          autocomplete="current-password" />
+      </form>
+      <button on:click={() => signin(client)}>
+        {#if loggingin}
+          <i class="fas fa-circle-notch fa-spin" />
+        {:else}Login{/if}
+      </button>
+    {:catch err}
+      <div style="color: red">{err.message}</div>
+    {/await}
   </div>
 
   <div class="info">

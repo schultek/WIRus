@@ -1,75 +1,43 @@
 const functions = require('firebase-functions');
 const admin = require("firebase-admin");
 const express = require("express");
-const cors = require("cors");
 
-// get firestore instance
 admin.initializeApp();
+
 const db = admin.firestore();
 
-// create express app
-const app = express();
+function makeApp(path, router) {
+  const app = express();
+  app.use((req, _, next) => console.log(req.originalUrl) || next())
+  app.use(path, router);
+  return app;
+}
 
-app.use(cors({
-  origin: true
-}))
-app.use((req, _, next) => {
-  console.log(req.originalUrl);
-  next();
-})
-
-app.use("/api/auth", require("./auth"));
-app.use("/api/app", require("./app"));
-app.use("/api/platform", require("./platform"));
-
-
-// sum up all points of completed actions
-app.get("/api/community", (req, res) => {
-  db.collection("actions").get()
-  .then(snapshot => {
-    res.send({
-      points: snapshot.docs
-        .map(d => d.data())
-        .filter(d => d.completed)
-        .map(d => d.points)
-        .reduce((sum, d) => sum + d, 0)
-    })
-  })
-  .catch((err) => res.status(500).send(err.message))
-})
-
-// email confirmation link for an action
-app.get("/api/confirm", (req, res) => {
-  if (!req.query.token) {
-    res.status(400).send("Missing token");
-    return;
-  }
-  db.collection("actions")
-    .where("confirmationToken", "==", req.query.token)
-    .get()
-    .then(snapshot => {
-      if (snapshot.empty) { // cannot find action for confirmation token
-        res.status(400).send("Cannot find action for token.")
-      } else { // action found, make completed
-        snapshot.docs[0].ref.update({
-          completed: true,
-          confirmedAt: Date.now()
-        })
-        .then(() => res.end());
-      }
-    })
-    .catch((err) => res.status(500).send(err.message))
-})
-
-exports.app = functions.https.onRequest(app);
+exports.userApi = functions.https.onRequest(makeApp("/api/user", require("./api/user")));
+exports.platformApi = functions.https.onRequest(makeApp("/api/platform", require("./api/platform")));
+exports.authApi = functions.https.onRequest(makeApp("/api/auth", require("./api/auth")));
+exports.baseApi = functions.https.onRequest(makeApp("/api", require("./api/base")));
 
 exports.onUserCreate = functions.auth.user().onCreate((user) => {
   return db.collection("users").doc(user.uid).create({
-    name: user.displayName,
+    name: user.displayName || "",
     email: user.email,
+    location: "",
+    motto: "",
+    profilePic: null,
     friends: [],
     platforms: {},
-    badges: []
+    badges: {
+      fleissigeBiene: 0,
+      freizeitHeld: 0,
+      guteFee: 0,
+      influencer: 0,
+      krisenManager: 0,
+      marathonLaeufer: 0,
+      stecher: 0,
+      viech: 0,
+      wirusVerbreiter: 0
+    }
   })
 })
 

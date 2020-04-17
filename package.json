@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "firebase": "^7.13.1",
+    "jsonwebtoken": "^8.5.1",
+    "jwt-decode": "^2.2.0",
     "sirv-cli": "^0.4.4"
   },
   "scripts": {

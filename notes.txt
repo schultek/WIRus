@@ -161,3 +161,134 @@ User
     [id]: {
         subject
     }
+
+
+
+
+von app, initial:
+
+request an redirect url mit
+    code: jwt signed by server containing:
+        server id (issuer)
+        client id (audience)
+        user id
+    
+von app, recurring:
+
+request an redirect url mit
+    code: jwt signed by server containing:
+        server id (issuer)
+        client id (audience)
+        user id
+        client subject
+    client_subject
+
+an signin form:
+
+request an signin form mit
+    response_type: "code"
+    client_id
+    redirect_uri [opt]
+    scope [opt] (space delimited)
+    state
+
+von signin form, initial:
+
+request an redirect url mit
+    code: jwt signed by server containing:
+        server id (issuer)
+        client id (audience)
+        user id
+        scope
+    state
+
+von signin form, recurring:
+
+request an redirect url mit
+    code: jwt signed by server containing:
+        server id (issuer)
+        client id (audience)
+        user id
+        client subject
+        scope
+    client_subject
+    state
+
+von client server:
+
+POST request an auth server mit
+    grant_type: "authorization_code"
+    client_id 
+    client_secret
+    redirect_uri [opt, ignored]
+    code
+    +
+    client_subject
+
+response mit
+    token_type: "bearer"
+    access_token: jwt signed by server containing
+        server id (issuer)
+        client id (audience)
+        scope
+        user id
+        client subject
+        data
+    expires_in: -1
+    refresh_token: null
+
+von client server
+
+POST request an auth server mit
+    grant_type: "client_credentials"
+    client_id
+    client_secret
+    scope [opt]
+    +
+    client_subject [opt]
+
+response mit
+    token_type: "bearer"
+    access_token: jwt signed by server containing
+        server id (issuer)
+        client id (audience)
+        scope
+        user id [opt]
+        client subject [opt]
+        data [opt]
+    expires_in: -1
+
+
+OPEN /signin
+    QUERY:
+        response_type: "code" [opt, ignored]
+        client_id
+        redirect_uri [opt]
+        scope [opt] (space delimited)
+        state [opt]
+
+GET /api/auth/info
+    QUERY:
+        client_id
+        redirec_uri [opt]
+        scope [opt] (space delimited)
+
+GET /api/auth/goto
+    QUERY:
+        authorization: user token
+        client_id
+        redirec_uri [opt]
+        scope [opt] (space delimited)
+        state [opt]
+
+OPEN [redirect_uri]
+    QUERY:
+        code: jwt signed by server containing:
+            server id (issuer)
+            client id (audience)
+            user id
+            scope
+            client subject [opt]
+        scope (space delimited)
+        client_subject [opt]
+        state [opt]
