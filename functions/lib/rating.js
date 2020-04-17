@@ -35,6 +35,9 @@ exports.getLevel = function(score) {
 
 }
 
+const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+
 exports.getSlope = function(score, actions) {
 
     const MIN_POINTS = 10;

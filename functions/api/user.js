@@ -52,9 +52,6 @@ app.get("/:userId/profile", async (req, res) => {
     })
 })
 
-const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
-const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
-
 // get all actions of a user
 app.get("/:userId/actions", (req, res) => {
 
