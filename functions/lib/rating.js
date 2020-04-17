@@ -35,6 +35,10 @@ exports.getLevel = function(score) {
 
 }
 
+const ONE_HOUR = 1000 * 60 * 60;
+const ONE_DAY = ONE_HOUR * 24;
+const ONE_MONTH = ONE_DAY * 30;
+const ONE_YEAR = ONE_DAY * 365;
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 

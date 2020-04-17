@@ -2,7 +2,6 @@ const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const express = require('express');
 
-const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 
 const app = express();
@@ -11,8 +10,6 @@ const db = admin.firestore();
 const ONE_HOUR = 1000 * 60 * 60;
 const ONE_DAY = ONE_HOUR * 24;
 const TWO_DAYS = ONE_DAY * 2;
-const ONE_MONTH = ONE_DAY * 30;
-const ONE_YEAR = ONE_DAY * 365;
 
 const {
   getEmailBody,
