@@ -24,7 +24,7 @@ const {
 
 const {
   ONE_DAY
-} = requier("../lib/date");
+} = require("../lib/date");
 
 // get a user by id
 app.get("/:userId/profile", async (req, res) => {
