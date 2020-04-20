@@ -161,6 +161,10 @@ app.get("/info", (req, res) => {
 
   let id = req.query.client_id;
 
+  if (!id) {
+    return res.status(400).send("Client id missing.");
+  }
+
   db.collection("platforms").doc(id).get()
     .then(doc => {
       if (!doc.exists) {
@@ -214,11 +218,11 @@ app.get("/goto", (req, res) => {
 
       let uri;
 
-      if (doc.get("redirect_uri")) {
-        if (req.query.redirect_uri && req.query.redirect_uri !== doc.get("redirect_uri")) {
+      if (platformDoc.get("redirect_uri")) {
+        if (req.query.redirect_uri && req.query.redirect_uri !== platformDoc.get("redirect_uri")) {
           return res.status(400).send("Illegal redirect uri '" + req.query.redirect_uri + "'.");
         }
-        uri = doc.get("redirect_uri");
+        uri = platformDoc.get("redirect_uri");
       } else {
         if (!req.query.redirect_uri) {
           return res.status(400).send("Redirect uri is missing.");
@@ -234,9 +238,9 @@ app.get("/goto", (req, res) => {
       };
 
       if (req.query.scope) {
-        payload.scope = bindScope(parseScope(req.query.scope), doc.get("default_scope"))
+        payload.scope = bindScope(parseScope(req.query.scope), platformDoc.get("default_scope"))
       } else {
-        payload.scope = doc.get("default_scope");
+        payload.scope = platformDoc.get("default_scope");
       }
 
       uri += `?scope=${encodeScope(payload.scope)}`;

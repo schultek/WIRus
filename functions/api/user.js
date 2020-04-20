@@ -7,10 +7,6 @@ const nodemailer = require("nodemailer");
 const app = express();
 const db = admin.firestore();
 
-const ONE_HOUR = 1000 * 60 * 60;
-const ONE_DAY = ONE_HOUR * 24;
-const TWO_DAYS = ONE_DAY * 2;
-
 const {
   getEmailBody,
   getTextBody
@@ -21,9 +17,14 @@ const {
 } = require("../lib/auth");
 
 const {
-  getLevel,
+  getRank,
+  getScore,
   getSlope
 } = require("../lib/rating");
+
+const {
+  ONE_DAY
+} = requier("../lib/date");
 
 // get a user by id
 app.get("/:userId/profile", async (req, res) => {
@@ -31,6 +32,10 @@ app.get("/:userId/profile", async (req, res) => {
   verifyUserToken(req)
     .then((user) => db.collection("users").doc(user.uid).get())
     .then(doc => {
+
+      let friendsAccepted = Object.values(doc.get("friends")).filter(v => v === "accepted").length;
+      let friendsRequested = Object.values(doc.get("friends")).filter(v => v === "requested").length;
+
       res.send({
         id: doc.id, // user id
         name: doc.get("name"),
@@ -39,7 +44,8 @@ app.get("/:userId/profile", async (req, res) => {
         motto: doc.get("motto"),
         profilePic: doc.get("profilePic"),
         location: doc.get("location"),
-        friends: doc.get("friends") || [],
+        friendsCount: friendsAccepted,
+        friendRequests: friendsRequested,
         badges: doc.get("badges") || {}
       })
     })
@@ -63,7 +69,7 @@ app.get("/:userId/actions", (req, res) => {
           id: d.id
         };
 
-        if (action.confirmationSentAt && action.confirmationSentAt + TWO_DAYS > Date.now()) {
+        if (action.confirmationSentAt && action.confirmationSentAt + ONE_DAY*2 > Date.now()) {
           await d.ref.update({
             confirmationToken: admin.firestore.FieldValue.delete(),
             confirmationSentAt: admin.firestore.FieldValue.delete()
@@ -83,15 +89,16 @@ app.get("/:userId/actions", (req, res) => {
 
       }))
 
-      let score = actions // sum up all points of completed actions
-        .filter(d => d.isCompleted)
-        .map(d => d.points)
-        .reduce((sum, d) => sum + d, 0);
+      let score = getScore(actions)
+      let rank = getRank(score);
+
+      await db.collection("users").doc(user.uid).update({
+        score, rank
+      }); // TODO update on action change
 
       res.send({
-        score,
-        friendScore: 100, // TODO friendScore
-        level: getLevel(score),
+        score, rank,
+        friendScore: 100, // TODO calc friendScore
         scoreSlope: getSlope(score, actions),
         actions: actions.map(a => ({
           id: a.id,
@@ -100,10 +107,7 @@ app.get("/:userId/actions", (req, res) => {
           points: a.points,
           createdAt: a.createdAt,
           completedAt: a.completedAt,
-          status: a.isCompleted ? "completed" :
-            a.confirmationSentAt ? "requested" :
-            a.isConfirmable && (!a.completedAt || a.completedAt < Date.now()) ? "unconfirmed" :
-            "pending"
+          status: a.isCompleted ? "completed" : a.confirmationSentAt ? "requested" : a.isConfirmable && (!a.completedAt || a.completedAt < Date.now()) ? "unconfirmed" : "pending"
         }))
       })
     })
@@ -153,14 +157,25 @@ app.post("/:userId/update", (req, res) => {
   delete req.body.email;
 
   verifyUserToken(req)
-    .then(user => db.collection("users").doc(user.uid)
-      .update({
-        ...req.body
-      }, {
-        merge: true
-      })
-    )
-    .then(() => res.end())
+    .then(async (user) => {
+      
+      if (req.body.nickname) {
+        let snapshot = await db.collection("users").where("nickname", "==", req.body.nickname).get();
+        
+        if (!snapshot.empty) {
+          return res.status(400).send(`Nickname ${req.body.nickname} is taken.`);
+        }
+      }
+
+      await db.collection("users").doc(user.uid)
+        .update({
+          ...req.body
+        }, {
+          merge: true
+        })
+
+      return res.end();
+    })
     .catch((err) => res.status(401).send(err.message));
 })
 
@@ -189,8 +204,8 @@ app.get("/:userId/confirm/:actionId", async (req, res) => {
         return;
       }
 
-      if (action.get("confirmationToken") && action.get("confirmationSentAt") + TWO_DAYS > Date.now()) {
-        res.status(400).send("Confirmation can be resend in " + ((action.get("confirmationSentAt") + TWO_DAYS - Date.now()) / 1000 / 60) + " minutes.");
+      if (action.get("confirmationToken") && action.get("confirmationSentAt") + ONE_DAY*2 > Date.now()) {
+        res.status(400).send("Confirmation can be resend in " + ((action.get("confirmationSentAt") + ONE_DAY*2 - Date.now()) / 1000 / 60) + " minutes.");
         return;
       }
 
@@ -247,5 +262,112 @@ async function generateConfirmationLink(action) {
 
   return `https://wirus-app.web.app/confirm?token=${token}`;
 }
+
+app.get("/:userId/friends/list", (req, res) => {
+  verifyUserToken(req)
+    .then((user) => db.collection("users").doc(user.uid).get())
+    .then(doc => Promise.all(Object.entries(doc.get("friends") || {})
+      .filter(([_, status]) => status != "declined")
+      .map(([id, status]) => db.collection("users").doc(id).get()
+        .then(d => ({
+          id,
+          nickname: d.get("nickname"),
+          score: status == "accepted" ? d.get("score") : null,
+          rank: status == "accepted" ? d.get("rank") : null,
+          motto: status == "accepted" ? d.get("motto") : null,
+          profilePic: status == "accepted" ? d.get("profilePic") : null,
+          status
+        }))
+      )
+    ))
+    .then(friends => {
+      res.send(friends);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(401).send(err.message)
+    })
+})
+
+app.get("/:userId/friends/search", (req, res) => {
+  if (!req.query.for)
+    return res.status(400).send("Search query is missing.");
+
+  verifyUserToken(req)
+    .then((user) => db.collection("users").doc(user.uid).get())
+    .then(doc => {
+      let friends = Object.entries(doc.get("friends") || {});
+      return db.collection("users").where("nickname", "==", req.query.for).get() // TODO agolia full text search
+        .then(snapshot => {
+          let result = snapshot.docs.map(d => {
+            let friend = friends.find(([id]) => id == d.id)
+            if (friend) {
+              return {id: d.id, nickname: d.get("nickname"), status: friend[1]}
+            } else {
+              return {id: d.id, nickname: d.get("nickname"), status: "new"}
+            }
+          })
+          res.send(result);
+        })
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(401).send(err.message)
+    })
+})
+
+app.get("/:userId/friends/:action(add|remove|accept|decline)/:friendId", (req, res) => {
+
+  verifyUserToken(req)
+    .then((user) => db.collection("users").doc(user.uid).get())
+    .then(async (doc) => {
+
+      let friends = doc.get("friends") || {};
+
+      let setSelf = status => doc.ref.update("friends."+req.params.friendId, status);
+      let setOther = status => db.collection("users").doc(req.params.friendId).update("friends."+doc.id, status);
+
+      switch (req.params.action) {
+        case "add":
+          if (friends[req.params.id] !== "declined") {
+            await setSelf("pending");
+            await setOther("requested");
+            return res.send({success: true})
+          } else {
+            return res.send({success: false}); 
+          }
+        case "remove":
+          if (friends[req.params.friendId] && friends[req.params.friendId] !== "declined") {
+            await setSelf(admin.firestore.FieldValue.delete());
+            await setOther(admin.firestore.FieldValue.delete());
+            return res.send({success: true})
+          } else {
+            return res.send({success: false})
+          }
+        case "accept":
+          if (friends[req.params.friendId] === "requested") {
+            await setSelf("accepted");
+            await setOther("accepted");
+            return res.send({success: true})
+          } else {
+            return res.send({success: false})
+          }
+        case "decline":
+          if (friends[req.params.friendId] === "requested") {
+            await setSelf("blocked");
+            await setOther("declined");
+            return res.send({success: true})
+          } else {
+            return res.send({success: false})
+          }
+        default:
+          return res.status(400).send(`Unknown action ${req.params.action}.`);
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(401).send(err.message)
+    })
+})
 
 module.exports = app;

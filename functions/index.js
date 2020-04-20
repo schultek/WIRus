@@ -22,10 +22,15 @@ exports.onUserCreate = functions.auth.user().onCreate((user) => {
   return db.collection("users").doc(user.uid).create({
     name: user.displayName || "",
     email: user.email,
+    score: 0,
+    rank: {
+      level: 0,
+      progress: 0
+    },
     location: "",
     motto: "",
     profilePic: null,
-    friends: [],
+    friends: {},
     platforms: {},
     badges: {
       fleissigeBiene: 0,
@@ -47,4 +52,5 @@ exports.onUserDelete = functions.auth.user().onDelete(async (user) => {
     .then(snapshot => Promise.all(
       snapshot.docs.map(doc => doc.ref.delete())
     ));
+  // TODO delete friend links
 })
