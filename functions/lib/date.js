@@ -75,15 +75,16 @@ exports.correctForEvenDifference = function (start, end, unit) {
 }
 
 exports.getLabel = function (d, unit) {
+  let date = new Date(d);
   switch (unit) {
     case "weekday":
-      return WEEKDAYS[d.getDay()];
+      return WEEKDAYS[date.getDay()];
     case "date":
-      return d.getDate() + ". " + MONTHS[d.getMonth()];
+      return date.getDate() + ". " + MONTHS[date.getMonth()];
     case "month":
-      return MONTHS[d.getMonth()];
+      return MONTHS[date.getMonth()];
     case "year":
-      return "" + d.getFullYear();
+      return "" + date.getFullYear();
     default:
       return null;
   }
