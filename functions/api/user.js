@@ -14,7 +14,7 @@ const {
 
 const {
   verifyUserToken
-} = require("../lib/auth");
+} = require("../lib/auth/verify");
 
 const {
   getRank,
@@ -26,7 +26,9 @@ const {
   ONE_DAY
 } = require("../lib/date");
 
-// get a user by id
+/**
+ * Returns the profile of an authenticated user
+ */
 app.get("/:userId/profile", async (req, res) => {
 
   verifyUserToken(req)
@@ -46,7 +48,8 @@ app.get("/:userId/profile", async (req, res) => {
         location: doc.get("location"),
         friendsCount: friendsAccepted,
         friendRequests: friendsRequested,
-        badges: doc.get("badges") || {}
+        badges: doc.get("badges") || {},
+        scheduledDeletionFor: doc.get("scheduledDeletionFor")
       })
     })
     .catch((err) => {
@@ -55,7 +58,10 @@ app.get("/:userId/profile", async (req, res) => {
     })
 })
 
-// get all actions of a user
+/**
+ * Returns the actions of an authenticated user, as well
+ * as its score, rank and friend's score.
+ */
 app.get("/:userId/actions", (req, res) => {
 
   verifyUserToken(req)
@@ -96,9 +102,18 @@ app.get("/:userId/actions", (req, res) => {
         score, rank
       }); // TODO update on action change
 
+      let userDoc = await db.collection("users").doc(user.uid).get();
+
+      let friendScore = await db.collection("users")
+        .where(admin.firestore.FieldPath.documentId(), "in", Object.keys(userDoc.get("friends") || {}))
+        .select("score")
+        .get()
+        .then(query => query.docs.map(d => d.get("score")))
+        .then(scores => scores.reduce((sum, s) => sum + s, 0))
+
       res.send({
         score, rank,
-        friendScore: 100, // TODO calc friendScore
+        friendScore,
         scoreSlope: getSlope(score, actions),
         actions: actions.map(a => ({
           id: a.id,
@@ -118,7 +133,10 @@ app.get("/:userId/actions", (req, res) => {
 })
 
 
-// get all platforms
+/**
+ * Returns a list of platforms for an authenticated user,
+ * together with its connection status.
+ */
 app.get("/:userId/platforms", (req, res) => {
 
   verifyUserToken(req)
@@ -144,12 +162,16 @@ app.get("/:userId/platforms", (req, res) => {
 })
 
 
-// update a user
+/**
+ * Updates the information of an authenticated user.
+ */
 app.post("/:userId/update", (req, res) => {
 
   if (!req.body || typeof req.body !== "object") {
     return res.status(400).send("Body must be a json object.");
   }
+
+  // TODO: use whitelisting, not blacklisting of properties
 
   delete req.body.platforms;
   delete req.body.badges;
@@ -180,7 +202,12 @@ app.post("/:userId/update", (req, res) => {
 })
 
 
-// request confirmation for an action
+/**
+ * Requests a confirmation of an action for an authenticated user.
+ * Can only be used for not completed and confirmable actions that have
+ * no pending confirmation request.
+ * Sends an email asking for confirmation to the third party host of the action.
+ */
 app.get("/:userId/confirm/:actionId", async (req, res) => {
 
   // get action
@@ -263,6 +290,10 @@ async function generateConfirmationLink(action) {
   return `https://wirus-app.web.app/confirm?token=${token}`;
 }
 
+/**
+ * Get the list of friends for an authenticated user, as well
+ * as their friend status.
+ */
 app.get("/:userId/friends/list", (req, res) => {
   verifyUserToken(req)
     .then((user) => db.collection("users").doc(user.uid).get())
@@ -289,6 +320,10 @@ app.get("/:userId/friends/list", (req, res) => {
     })
 })
 
+/**
+ * Searches for a user by its nickname.
+ * Currently only supports exact matches.
+ */
 app.get("/:userId/friends/search", (req, res) => {
   if (!req.query.for)
     return res.status(400).send("Search query is missing.");
@@ -316,6 +351,10 @@ app.get("/:userId/friends/search", (req, res) => {
     })
 })
 
+/**
+ * Requests a friend or accepts / declines a friend request or removes a friend for
+ * an authenticated user.
+ */
 app.get("/:userId/friends/:action(add|remove|accept|decline)/:friendId", (req, res) => {
 
   verifyUserToken(req)
@@ -369,5 +408,29 @@ app.get("/:userId/friends/:action(add|remove|accept|decline)/:friendId", (req, r
       res.status(401).send(err.message)
     })
 })
+
+/**
+ * Issues a deletion request for a user. If no
+ * deletion delay is provided, by default the deletion 
+ * is scheduled for 14 days.
+ */
+app.get("/:userId/delete", (req, res) => {
+
+  verifyUserToken(req)
+    .then((user) => {
+      return db.collection("users").doc(user.uid).update({
+        scheduledDeletionFor: Date.now() + (parseInt(req.query.delay) || (1000 * 60 * 60 * 24 * 14)) // two weeks
+      })
+        .then(() => res.end())
+        .catch(err => {
+          console.error(err);
+          res.status(500).send(err.message);
+        })
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(401).send(err.message)
+    });
+});
 
 module.exports = app;

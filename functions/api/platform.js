@@ -12,14 +12,18 @@ const db = admin.firestore();
 
 const {
   verifyAccessToken
-} = require("../lib/auth");
+} = require("../lib/auth/verify");
 
 const {
   testUri,
   testEmail
 } = require("../lib/utils");
 
-// get a platform by id
+/**
+ * Gets information about a platform.
+ * Requires the 'wirus.platform.read' scope 
+ * and platforms can only read its own information.
+ */
 app.get("/:platformId/get", (req, res) => {
   verifyAccessToken(req, req.params.platformId, ["wirus.platform.read"])
     .then(() => db.collection("platforms").doc(req.params.platformId).get())
@@ -36,7 +40,12 @@ app.get("/:platformId/get", (req, res) => {
     .catch((err) => res.status(401).send(err.message))
 })
 
-// update a platform
+/**
+ * Updates the basic information of a platform such as
+ * the name, description, logo or url.
+ * Requires the 'wirus.platform.write' scope 
+ * and platforms can only update its own information.
+ */
 app.post("/:platformId/update", (req, res) => {
 
   if (typeof req.body !== 'object' || req.body == null) {
@@ -75,7 +84,22 @@ app.post("/:platformId/update", (req, res) => {
     .catch((err) => res.status(401).send(err.message))
 })
 
-// create an action of a platform
+/**
+ * Creates a new action on a platform for a specific user.
+ * Requires the 'wirus.actions.create' scope 
+ * and platforms can only create actions for linked users.
+ * Only available with the authorization code flow.
+ * Expects a json object: {
+ *  title: <action title>,
+ *  description: <action description>,
+ *  createdAt: <creation timestamp>, (optional; otherwise the current time is used)
+ *  points: <points for completing the action>, (optional; otherwise the points are computed)
+ *  isCompleted: <indicates if the action is already completed>,
+ *  completedAt: <completion timestamp, (only used if isCompleted is set to true; then optional; otherwise the current time is used)
+ *  isConfirmable: <indicates if the action needs to be confirmed by a third party>,
+ *  host: <the email of the third party>, (only required if isConfirmable is set to true)
+ * }
+ */
 app.post("/:platformId/action/:actionId?", (req, res) => {
 
   if (typeof req.body !== 'object' || req.body == null) {
@@ -171,7 +195,13 @@ app.post("/:platformId/action/:actionId?", (req, res) => {
 })
 
 
-// get an action of a platform
+/**
+ * Gets an action. Requires the 'wirus.actions.get' scope 
+ * and a platform can only get its own actions.
+ * Only available with the authorization code flow.
+ * See [Create a new action] for a description of the action 
+ * payload returned.
+ */
 app.get("/:platformId/action/:actionId/get", (req, res) => {
 
   verifyAccessToken(req, req.params.platformId, ["wirus.actions.get"])
@@ -206,7 +236,11 @@ app.get("/:platformId/action/:actionId/get", (req, res) => {
 
 })
 
-// complete an action of a platform
+/**
+ * Completes an action. Requires the 'wirus.actions.complete' scope 
+ * and a platform can only complete its own uncompleted actions.
+ * Only available with the authorization code flow.
+ */
 app.get("/:platformId/action/:actionId/complete", (req, res) => {
 
   verifyAccessToken(req, req.params.platformId, ["wirus.actions.complete"])

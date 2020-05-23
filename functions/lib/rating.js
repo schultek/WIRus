@@ -5,6 +5,10 @@ const {
   getLabel
 } = require("./date");
 
+/**
+ * Calculates the score of a user from a
+ * provided list of actions
+ */
 exports.getScore = function(actions) {
   return actions // sum up all points of completed actions
     .filter(d => d.isCompleted)
@@ -12,6 +16,11 @@ exports.getScore = function(actions) {
     .reduce((sum, d) => sum + d, 0);
 }
 
+/**
+ * Calculates the rank of a user from
+ * its score.
+ * // TODO: also use its trophies
+ */
 exports.getRank = function(score) {
 
   if (score < 10) {
@@ -45,9 +54,14 @@ exports.getRank = function(score) {
       progress: -1
     }
   }
-
 }
 
+/**
+ * Gets the slope of a users score to be shown
+ * in a graph. Dynamically adjusts the timeframe
+ * of the graph to show a meaningful development
+ * of the score.
+ */
 exports.getSlope = function(score, actions) {
 
     const MIN_POINTS = 100;

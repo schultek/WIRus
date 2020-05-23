@@ -18,6 +18,10 @@ exports.platformApi = functions.https.onRequest(makeApp("/api/platform", require
 exports.authApi = functions.https.onRequest(makeApp("/api/auth", require("./api/auth")));
 exports.baseApi = functions.https.onRequest(makeApp("/api", require("./api/base")));
 
+/**
+ * Executed when a new user is registered. Automatically
+ * creates the needed database entry for the user with default values.
+ */
 exports.onUserCreate = functions.auth.user().onCreate((user) => {
   return db.collection("users").doc(user.uid).create({
     name: user.displayName || "",
@@ -46,11 +50,38 @@ exports.onUserCreate = functions.auth.user().onCreate((user) => {
   })
 })
 
+/**
+ * Executed when a user is unregistered. Automatically
+ * deletes the user's database entry and removes all friend links.
+ */
 exports.onUserDelete = functions.auth.user().onDelete(async (user) => {
   await db.collection("users").doc(user.uid).delete();
   await db.collection("actions").where("user" == user.uid).get()
     .then(snapshot => Promise.all(
       snapshot.docs.map(doc => doc.ref.delete())
     ));
-  // TODO delete friend links
+
+  await db.collection("users").where("friends."+user.uid, "in", [
+    "declined", "pending", "requested", "accepted", "blocked"
+  ]).get()
+    .then(query => Promise.all(query.docs.map(d => d.ref.update("friends."+user.uid, admin.firestore.FieldValue.delete()))))
+})
+
+/**
+ * Executed once every 24 hours to check for scheduled deletion of users.
+ */
+exports.onceADay = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
+
+  await db.collection("users")
+    .where("scheduledDeletionFor", ">", 0)
+    .where("scheduledDeletionFor", "<", Date.now())
+    .get()
+    .then(query => Promise.all(query.docs.map(doc => admin.auth().deleteUser(doc.id))))
+    .then(res => {
+      console.log("Deleted "+res.length+" users.")
+    })
+    .catch(err => {
+      console.error(err);
+    })
+
 })

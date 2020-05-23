@@ -6,7 +6,10 @@ const app = express();
 
 app.use(cors({ origin: true }))
 
-// sum up all points of completed actions
+/**
+ * Sums up all points of completed actions
+ * [Currently unused]
+ */
 app.get("/community", (req, res) => {
   db.collection("actions").get()
   .then(snapshot => {
@@ -21,7 +24,10 @@ app.get("/community", (req, res) => {
   .catch((err) => res.status(500).send(err.message))
 })
 
-// email confirmation link for an action
+/**
+ * This is called from a confirmation email when
+ * clicked on the 'Confirm' button.
+ */
 app.get("/confirm", (req, res) => {
   if (!req.query.token) {
     res.status(400).send("Missing token");

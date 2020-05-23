@@ -1,5 +1,4 @@
-const functions = require("firebase-functions")
-const fetch = require("node-fetch");
+const functions = require("firebase-functions");
 const jwt = require("jsonwebtoken");
 const admin = require("firebase-admin");
 
@@ -9,6 +8,9 @@ const {
   testScope
 } = require("./scope");
 
+/**
+ * Verifies a firebase user token, used by the app.
+ */
 exports.verifyUserToken = async function (req, validator) {
   let idToken;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
@@ -37,6 +39,9 @@ exports.verifyUserToken = async function (req, validator) {
   }
 }
 
+/**
+ * Verifies an access token, used by platforms
+ */
 exports.verifyAccessToken = async function (req, clientId, requiredScope) {
 
   // check if id token cookie exists
@@ -59,20 +64,9 @@ exports.verifyAccessToken = async function (req, clientId, requiredScope) {
   return payload;
 }
 
-exports.getUserDataForScopes = function(scopes, user) {
-  let data = {};
-  if (scopes.includes("wirus.user.name") || scopes.includes("wirus.user.read")) {
-    data.name = user.name;
-  }
-  if (scopes.indexOf("wirus.user.email") || scopes.includes("wirus.user.read")) {
-    data.email = user.email;
-  }
-  if (scopes.indexOf("wirus.user.location") || scopes.includes("wirus.user.read")) {
-    data.location = user.location;
-  }
-  return data;
-}
-
+/**
+ * Verifies client credentials, used by platforms.
+ */
 exports.verifyClientCredentials = async function(id, secret) {
 
   if (!id) throw new Error("Client id missing.");

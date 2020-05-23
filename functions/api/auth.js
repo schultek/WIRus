@@ -10,8 +10,7 @@ const db = admin.firestore();
 const {
   verifyClientCredentials,
   verifyUserToken,
-  getUserDataForScopes
-} = require("../lib/auth");
+} = require("../lib/auth/verify");
 
 const {
   SCOPES,
@@ -19,14 +18,26 @@ const {
   bindScope,
   expandScope,
   parseScope,
-  encodeScope
-} = require("../lib/scope");
+  encodeScope,
+  getUserDataForScopes
+} = require("../lib/auth/scope");
 
 const {
   testUri
 } = require("../lib/utils");
 
-
+/**
+ * Generates an access token for platforms.
+ * Supports either authorization code flow and client credentials flow
+ * Expects json body: {
+ *  grant_type: "authorization_code" or "client_credentials",
+ *  client_id: <platform id>,
+ *  client_secret: <platform secret>,
+ *  code: <authorization code>, (only for "authorization_code")
+ *  client_subject: <user identification for platform>, (required for "authorization_code", optional for "client_credentials")
+ *  scope: <requested token scope>, (only optional for "client_credentials")
+ * }
+ */
 app.post("/token", cors({
   origin: true
 }), async (req, res) => {
@@ -157,6 +168,18 @@ app.post("/token", cors({
 
 });
 
+/**
+ * Gets basic information about a client, used for the signin form.
+ * Responds with {
+ *  id: <client id>,
+ *  name: <client name>,
+ *  description: <client description>,
+ *  logo: <client logo>,
+ *  redirect_uri: <uri to be redirected to when successful login>,
+ *  scope: <the requested scope>,
+ *  scopeDescription: <a textual description of the requested scope>
+ * }
+ */
 app.get("/info", (req, res) => {
 
   let id = req.query.client_id;
@@ -203,6 +226,10 @@ app.get("/info", (req, res) => {
 
 })
 
+/**
+ * Creates a redirection to the requested platform, populated
+ * with an authorization code 
+ */
 app.get("/goto", (req, res) => {
 
   verifyUserToken(req)
@@ -271,6 +298,24 @@ app.get("/goto", (req, res) => {
     .catch(err => res.status(401).send(err.message));
 })
 
+/**
+ * Registers a new platform / client
+ * Expects json body: {
+ *  registration_code: <access code for the registration>, (manually assigned)
+ *  client_id: <unique platform id>,
+ *  client_secret: <platform secret>,
+ *  redirect_uri: <default uri to be redirected to>, (optional)
+ *  default_scope: <default scope of the platform>, (optional)
+ * }
+ * 
+ * In order to allow registration, a new database entry must be created
+ * in the 'codes' collection with an id used as the registration code 
+ * and fields: {
+ *  used: false,
+ *  type: "client_registration",
+ *  allowed_scope: [...] (optional; an array of scope ids; the client can not request any scopes that are not covered by list)
+ * }
+ */
 app.post("/register", cors({
   origin: true
 }), (req, res) => {
@@ -351,13 +396,19 @@ app.post("/register", cors({
       }
     })
     .catch(err => res.status(500).send(err.message));
-
 })
 
+/**
+ * Public endpoint to get the current public key.
+ * Can be used to verify access tokens by the platforms.
+ */
 app.get("/public_key", (req, res) => {
   res.send(functions.config().env.keys.public);
 })
 
+/**
+ * Get all available scopes to choose from as a platform.
+ */
 app.get("/scopes", (req, res) => {
   res.send(SCOPES);
 })
